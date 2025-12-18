@@ -8,23 +8,40 @@
           <h1 class="text-3xl font-bold text-gray-800 tracking-tight">Order Materials</h1>
           <p class="text-gray-500 mt-1">Browse and request items for your project</p>
         </div>
-        <button 
-          @click="showCart = true" 
-          class="relative btn-primary flex items-center shadow-lg shadow-blue-500/30"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-          </svg>
-          Cart
-          <span v-if="cart.length > 0" class="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full h-6 w-6 flex items-center justify-center border-2 border-white">
-            {{ cartTotalItems }}
-          </span>
-        </button>
+        <div class="flex gap-4 w-full md:w-auto">
+          <!-- Search Bar -->
+          <div class="relative w-full md:w-64">
+            <span class="absolute inset-y-0 left-0 flex items-center pl-3">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </span>
+            <input 
+              v-model="searchQuery" 
+              type="text" 
+              placeholder="Search products..." 
+              class="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow"
+            />
+          </div>
+
+          <button 
+            @click="showCart = true" 
+            class="relative btn-primary flex items-center shadow-lg shadow-blue-500/30 whitespace-nowrap"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+            </svg>
+            Cart
+            <span v-if="cart.length > 0" class="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full h-6 w-6 flex items-center justify-center border-2 border-white">
+              {{ cartTotalItems }}
+            </span>
+          </button>
+        </div>
       </div>
 
       <!-- Item Grid -->
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        <div v-for="item in items" :key="item._id" class="card p-4 flex flex-col h-full group">
+        <div v-for="item in filteredItems" :key="item._id" class="card p-4 flex flex-col h-full group">
           <div class="h-40 bg-gray-100 rounded-lg mb-4 flex items-center justify-center text-gray-400 group-hover:bg-blue-50 transition-colors">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
@@ -147,6 +164,7 @@ import Navbar from '../components/Navbar.vue';
 
 const router = useRouter();
 const items = ref([]);
+const searchQuery = ref('');
 const cart = ref([]);
 const showCart = ref(false);
 const orderType = ref('pickup');
@@ -182,6 +200,15 @@ const addToCart = (item) => {
 const removeFromCart = (index) => {
   cart.value.splice(index, 1);
 };
+
+const filteredItems = computed(() => {
+  if (!searchQuery.value) return items.value;
+  const lowerQuery = searchQuery.value.toLowerCase();
+  return items.value.filter(item => 
+    item.name.toLowerCase().includes(lowerQuery) || 
+    (item.itemCode && item.itemCode.toLowerCase().includes(lowerQuery))
+  );
+});
 
 const cartTotalItems = computed(() => {
   return cart.value.reduce((acc, item) => acc + item.quantity, 0);

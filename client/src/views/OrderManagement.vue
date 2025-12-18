@@ -139,10 +139,26 @@ const updateStatus = async (id, status) => {
 };
 
 const filteredOrders = computed(() => {
-  if (filter.value === 'all') return orders.value;
-  if (filter.value === 'pending') return orders.value.filter(o => o.status === 'pending');
-  if (filter.value === 'active') return orders.value.filter(o => !['completed', 'cancelled'].includes(o.status));
-  return orders.value;
+  let result = orders.value;
+
+  // 1. Status Filter
+  if (filter.value === 'pending') {
+    result = result.filter(o => o.status === 'pending');
+  } else if (filter.value === 'active') {
+    result = result.filter(o => !['completed', 'cancelled'].includes(o.status));
+  }
+
+  // 2. Search Filter
+  if (searchQuery.value) {
+    const q = searchQuery.value.toLowerCase();
+    result = result.filter(o => 
+      o._id.toLowerCase().includes(q) || 
+      (o.user?.email || '').toLowerCase().includes(q) ||
+      o.items.some(i => (i.item?.name || '').toLowerCase().includes(q))
+    );
+  }
+
+  return result;
 });
 
 const formatStatus = (status) => {

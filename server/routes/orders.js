@@ -15,7 +15,7 @@ router.get('/', auth, async (req, res) => {
         console.log(`GET /orders - User: ${req.user.email} (${req.user.role}), View: ${view}`);
 
         // If 'view=mine' is requested, or if user is NOT admin/staff, only show own orders
-        if (view === 'mine' || !['admin', 'warehouse_staff'].includes(req.user.role)) {
+        if (view === 'mine' || (req.user.role !== 'admin' && req.user.role !== 'warehouse_staff')) {
             query.user = req.user.id;
         }
 
