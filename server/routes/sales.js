@@ -114,7 +114,9 @@ router.get('/', auth, async (req, res) => {
       if (req.query.startDate) query.date.$gte = new Date(req.query.startDate);
       if (req.query.endDate) query.date.$lte = new Date(req.query.endDate);
     }
-    if (req.query.paymentMethod) query.paymentMethod = req.query.paymentMethod;
+    if (req.query.paymentMethod && req.query.paymentMethod !== 'undefined' && req.query.paymentMethod !== '') {
+      query.paymentMethod = req.query.paymentMethod;
+    }
 
     const sales = await Sale.find(query).sort({ date: -1 }).populate('user', 'email');
 
@@ -130,7 +132,7 @@ router.get('/', auth, async (req, res) => {
         amountPaid: s.amountPaid,
         change: s.change,
         paymentMethod: s.paymentMethod,
-        cashier: s.user?.email || ''
+        cashier: s.user ? s.user.email : ''
       }));
       const csv = toCSV(rows, ['transactionId','date','items','subTotal','txDiscountType','txDiscountValue','totalAmount','amountPaid','change','paymentMethod','cashier']);
       res.header('Content-Type', 'text/csv');
@@ -143,14 +145,21 @@ router.get('/', auth, async (req, res) => {
   }
 });
 
-// Get sales stats for dashboard (last 7 days)
+// Get sales stats for dashboard
 router.get('/stats', auth, async (req, res) => {
     try {
-        const last7Days = new Date();
-        last7Days.setDate(last7Days.getDate() - 7);
+        const { days } = req.query;
+        let matchStage = {};
+
+        if (days && days !== 'all') {
+            const startDate = new Date();
+            startDate.setDate(startDate.getDate() - parseInt(days));
+            startDate.setHours(0, 0, 0, 0); // Start of that day
+            matchStage = { date: { $gte: startDate } };
+        }
 
         const stats = await Sale.aggregate([
-            { $match: { date: { $gte: last7Days } } },
+            { $match: matchStage },
             {
                 $group: {
                     _id: { $dateToString: { format: "%Y-%m-%d", date: "$date" } },

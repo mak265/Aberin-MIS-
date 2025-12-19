@@ -92,11 +92,27 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, nextTick } from 'vue';
 import api from '../services/api';
 import Navbar from '../components/Navbar.vue';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
+
+// Fix Leaflet icons
+import icon from 'leaflet/dist/images/marker-icon.png';
+import iconShadow from 'leaflet/dist/images/marker-shadow.png';
+let DefaultIcon = L.icon({
+    iconUrl: icon,
+    shadowUrl: iconShadow,
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+    popupAnchor: [1, -34]
+});
+L.Marker.prototype.options.icon = DefaultIcon;
 
 const orders = ref([]);
+const expandedMapOrderId = ref(null);
+let map = null;
 
 const fetchOrders = async () => {
   try {
@@ -104,6 +120,34 @@ const fetchOrders = async () => {
     orders.value = response.data;
   } catch (err) {
     console.error(err);
+  }
+};
+
+const toggleMap = async (order) => {
+  if (expandedMapOrderId.value === order._id) {
+    expandedMapOrderId.value = null; // Close map
+    return;
+  }
+  
+  expandedMapOrderId.value = order._id;
+  await nextTick();
+  
+  if (order.location && order.location.lat && order.location.lng) {
+    const mapId = `map-${order._id}`;
+    if (map) {
+      map.remove();
+      map = null;
+    }
+    
+    map = L.map(mapId).setView([order.location.lat, order.location.lng], 15);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
+    
+    L.marker([order.location.lat, order.location.lng])
+      .addTo(map)
+      .bindPopup("Delivery Location")
+      .openPopup();
   }
 };
 

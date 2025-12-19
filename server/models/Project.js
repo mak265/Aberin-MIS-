@@ -10,6 +10,10 @@ const ProjectSchema = new mongoose.Schema({
         type: String,
         required: true
     },
+    coordinates: {
+        lat: Number,
+        lng: Number
+    },
     manager: {
         type: String // Name of the Site Engineer / Foreman
     },

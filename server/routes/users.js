@@ -4,6 +4,7 @@ const User = require('../models/User');
 const auth = require('../middleware/auth');
 const roles = require('../middleware/roles');
 const logActivity = require('../utils/logger');
+const sendEmail = require('../utils/email');
 const bcrypt = require('bcryptjs');
 
 // Get all users (Admin only)
@@ -23,7 +24,7 @@ router.post('/', auth, roles('admin'), async (req, res) => {
     if (!email || !password) {
       return res.status(400).json({ message: 'Email and password are required' });
     }
-    if (role && !['admin', 'warehouse_staff', 'site_engineer', 'client'].includes(role)) {
+    if (role && !['admin', 'warehouse_staff', 'site_engineer', 'client', 'delivery'].includes(role)) {
       return res.status(400).json({ message: 'Invalid role' });
     }
     const existing = await User.findOne({ email });
@@ -31,15 +32,25 @@ router.post('/', auth, roles('admin'), async (req, res) => {
 
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
+    // Generate OTP for verification
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const otpExpires = Date.now() + 24 * 60 * 60 * 1000; // 24 hours for admin created accounts
+
     const user = new User({
       email,
       password: hashedPassword,
       role: role || 'warehouse_staff',
-      isVerified: true
+      isVerified: false, // Must verify OTP
+      otp,
+      otpExpires
     });
     await user.save();
-    await logActivity(req.user.id, 'create_user', `Created user ${user.email} (${user.role})`);
-    res.status(201).json({ _id: user._id, email: user.email, role: user.role, createdAt: user.createdAt });
+    
+    // Send Email
+    await sendEmail(email, 'Welcome - Verify your Account', `Your account has been created. Please login and verify using this OTP: ${otp}`);
+
+    await logActivity(req.user.id, 'create_user', `Created user ${user.email} (${user.role}) - Pending Verification`);
+    res.status(201).json({ _id: user._id, email: user.email, role: user.role, createdAt: user.createdAt, message: 'User created. Verification OTP sent to email.' });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -49,7 +60,7 @@ router.post('/', auth, roles('admin'), async (req, res) => {
 router.put('/:id/role', auth, roles('admin'), async (req, res) => {
   try {
     const { role } = req.body;
-    if (!['admin', 'warehouse_staff', 'site_engineer', 'client'].includes(role)) {
+    if (!['admin', 'warehouse_staff', 'site_engineer', 'client', 'delivery'].includes(role)) {
       return res.status(400).json({ message: 'Invalid role' });
     }
 

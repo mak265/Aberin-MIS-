@@ -9,66 +9,149 @@
       </div>
       
       <!-- Stats Cards -->
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6 mb-8">
         <!-- Total Items -->
         <div class="card card-hover border-l-4 border-blue-500 relative overflow-hidden group">
           <div class="absolute right-0 top-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-24 w-24 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
             </svg>
           </div>
           <div class="relative z-10">
-            <h2 class="text-blue-600 text-sm font-bold uppercase tracking-wider mb-1">Total Items</h2>
-            <p class="text-3xl font-extrabold text-gray-800 mt-2">{{ totalItems }}</p>
-            <p class="text-gray-500 text-xs mt-2">Unique SKUs in stock</p>
+            <h2 class="text-blue-600 text-xs font-bold uppercase tracking-wider mb-1">Items</h2>
+            <p class="text-2xl font-extrabold text-gray-800">{{ totalItems }}</p>
           </div>
         </div>
 
         <!-- Total Quantity -->
         <div class="card card-hover border-l-4 border-green-500 relative overflow-hidden group">
           <div class="absolute right-0 top-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-24 w-24 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
             </svg>
           </div>
           <div class="relative z-10">
-            <h2 class="text-green-600 text-sm font-bold uppercase tracking-wider mb-1">Total Quantity</h2>
-            <p class="text-3xl font-extrabold text-gray-800 mt-2">{{ totalQuantity.toLocaleString() }}</p>
-            <p class="text-gray-500 text-xs mt-2">Units across all categories</p>
+            <h2 class="text-green-600 text-xs font-bold uppercase tracking-wider mb-1">Stock</h2>
+            <p class="text-2xl font-extrabold text-gray-800">{{ totalQuantity.toLocaleString() }}</p>
           </div>
         </div>
 
         <!-- Total Value -->
-        <div class="card card-hover border-l-4 border-yellow-500 relative overflow-hidden group">
+        <div v-if="authStore.user?.role !== 'warehouse_staff'" class="card card-hover border-l-4 border-yellow-500 relative overflow-hidden group">
            <div class="absolute right-0 top-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-24 w-24 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
           </div>
           <div class="relative z-10">
-            <h2 class="text-yellow-600 text-sm font-bold uppercase tracking-wider mb-1">Total Value</h2>
-            <p class="text-3xl font-extrabold text-gray-800 mt-2">${{ totalValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }}</p>
-            <p class="text-gray-500 text-xs mt-2">Estimated inventory worth</p>
+            <h2 class="text-yellow-600 text-xs font-bold uppercase tracking-wider mb-1">Value</h2>
+            <p class="text-2xl font-extrabold text-gray-800">${{ formatCompactNumber(totalValue) }}</p>
           </div>
         </div>
 
         <!-- Pending Orders -->
-        <div class="card card-hover border-l-4 border-purple-500 relative overflow-hidden group cursor-pointer" @click="$router.push('/orders-manage')">
+        <div v-if="authStore.user?.role !== 'warehouse_staff'" class="card card-hover border-l-4 border-purple-500 relative overflow-hidden group cursor-pointer" @click="$router.push('/orders-manage')">
            <div class="absolute right-0 top-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-24 w-24 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
             </svg>
           </div>
           <div class="relative z-10">
-            <h2 class="text-purple-600 text-sm font-bold uppercase tracking-wider mb-1">Pending Orders</h2>
-            <p class="text-3xl font-extrabold text-gray-800 mt-2">{{ pendingOrders }}</p>
-            <p class="text-gray-500 text-xs mt-2">Orders awaiting approval</p>
+            <h2 class="text-purple-600 text-xs font-bold uppercase tracking-wider mb-1">Pending</h2>
+            <p class="text-2xl font-extrabold text-gray-800">{{ pendingOrders }}</p>
+          </div>
+        </div>
+
+        <!-- Active Deliveries -->
+        <div v-if="authStore.user?.role !== 'warehouse_staff'" class="card card-hover border-l-4 border-cyan-500 relative overflow-hidden group cursor-pointer" @click="$router.push('/deliveries')">
+           <div class="absolute right-0 top-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 text-cyan-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0" />
+            </svg>
+          </div>
+          <div class="relative z-10">
+            <h2 class="text-cyan-600 text-xs font-bold uppercase tracking-wider mb-1">Deliveries</h2>
+            <p class="text-2xl font-extrabold text-gray-800">{{ activeDeliveries }}</p>
+          </div>
+        </div>
+
+        <!-- Total Users -->
+        <div v-if="authStore.user?.role !== 'warehouse_staff'" class="card card-hover border-l-4 border-indigo-500 relative overflow-hidden group cursor-pointer" @click="$router.push('/users')">
+           <div class="absolute right-0 top-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+            </svg>
+          </div>
+          <div class="relative z-10">
+            <h2 class="text-indigo-600 text-xs font-bold uppercase tracking-wider mb-1">Users</h2>
+            <p class="text-2xl font-extrabold text-gray-800">{{ totalUsers }}</p>
           </div>
         </div>
       </div>
 
+      <!-- Quick Actions -->
+      <div class="mb-8">
+        <h2 class="text-lg font-bold text-gray-800 mb-4">Quick Actions</h2>
+        <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+           <button @click="$router.push('/stock')" class="p-4 bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-md hover:border-blue-300 transition-all flex flex-col items-center gap-2 group">
+             <div class="p-2 bg-blue-50 text-blue-600 rounded-lg group-hover:bg-blue-600 group-hover:text-white transition-colors">
+               <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+               </svg>
+             </div>
+             <span class="text-xs font-bold text-gray-700">Add Stock</span>
+           </button>
+
+           <button @click="$router.push('/orders-manage')" class="p-4 bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-md hover:border-purple-300 transition-all flex flex-col items-center gap-2 group">
+             <div class="p-2 bg-purple-50 text-purple-600 rounded-lg group-hover:bg-purple-600 group-hover:text-white transition-colors">
+               <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+               </svg>
+             </div>
+             <span class="text-xs font-bold text-gray-700">Manage Orders</span>
+           </button>
+
+           <button @click="$router.push('/users')" class="p-4 bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-md hover:border-indigo-300 transition-all flex flex-col items-center gap-2 group">
+             <div class="p-2 bg-indigo-50 text-indigo-600 rounded-lg group-hover:bg-indigo-600 group-hover:text-white transition-colors">
+               <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+               </svg>
+             </div>
+             <span class="text-xs font-bold text-gray-700">Add User</span>
+           </button>
+
+           <button @click="$router.push('/reports')" class="p-4 bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-md hover:border-green-300 transition-all flex flex-col items-center gap-2 group">
+             <div class="p-2 bg-green-50 text-green-600 rounded-lg group-hover:bg-green-600 group-hover:text-white transition-colors">
+               <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 011.414.586l5.414 5.414a1 1 0 01.586 1.414V19a2 2 0 01-2 2z" />
+               </svg>
+             </div>
+             <span class="text-xs font-bold text-gray-700">Reports</span>
+           </button>
+           
+           <button @click="$router.push('/audit-trail')" class="p-4 bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-md hover:border-orange-300 transition-all flex flex-col items-center gap-2 group">
+             <div class="p-2 bg-orange-50 text-orange-600 rounded-lg group-hover:bg-orange-600 group-hover:text-white transition-colors">
+               <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+               </svg>
+             </div>
+             <span class="text-xs font-bold text-gray-700">Audit Trail</span>
+           </button>
+
+           <button @click="$router.push('/deliveries')" class="p-4 bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-md hover:border-cyan-300 transition-all flex flex-col items-center gap-2 group">
+             <div class="p-2 bg-cyan-50 text-cyan-600 rounded-lg group-hover:bg-cyan-600 group-hover:text-white transition-colors">
+               <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0" />
+               </svg>
+             </div>
+             <span class="text-xs font-bold text-gray-700">Track Deliveries</span>
+           </button>
+        </div>
+      </div>
+
       <!-- Charts Row -->
-      <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8" v-if="authStore.user?.role !== 'warehouse_staff'">
         <!-- Sales Chart -->
         <div class="card lg:col-span-2">
           <div class="flex items-center justify-between mb-6">
@@ -80,7 +163,14 @@
               </span>
               Sales Trends
             </h2>
-            <span class="text-xs font-bold text-gray-500 bg-gray-100 px-3 py-1 rounded-full uppercase">Last 7 Days</span>
+            <span class="text-xs font-bold text-gray-500 bg-gray-100 px-3 py-1 rounded-full uppercase">
+              <select v-model="salesTimeRange" class="bg-transparent border-none outline-none text-gray-600 font-bold cursor-pointer">
+                <option value="7">Last 7 Days</option>
+                <option value="30">Last 30 Days</option>
+                <option value="90">Last 3 Months</option>
+                <option value="all">All Time</option>
+              </select>
+            </span>
           </div>
           <div class="h-64 w-full">
              <Bar v-if="chartData.labels.length > 0" :data="chartData" :options="chartOptions" />
@@ -156,7 +246,7 @@
         </div>
 
         <!-- Top Projects -->
-        <div class="card h-full">
+        <div class="card h-full" v-if="authStore.user?.role !== 'warehouse_staff'">
            <div class="flex items-center justify-between mb-6">
             <h2 class="text-lg font-bold text-gray-800 flex items-center">
               <span class="bg-orange-100 text-orange-600 p-2 rounded-lg mr-3">
@@ -184,7 +274,7 @@
         </div>
 
         <!-- Latest Transactions -->
-        <div class="card h-full">
+        <div class="card h-full" v-if="authStore.user?.role !== 'warehouse_staff'">
           <div class="flex items-center justify-between mb-6">
             <h2 class="text-lg font-bold text-gray-800 flex items-center">
               <span class="bg-purple-100 text-purple-600 p-2 rounded-lg mr-3">
@@ -228,7 +318,9 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
+import { useRouter } from 'vue-router';
+import { useAuthStore } from '../stores/auth';
 import api from '../services/api';
 import Navbar from '../components/Navbar.vue';
 import { Bar, Doughnut } from 'vue-chartjs';
@@ -236,21 +328,46 @@ import { Chart as ChartJS, Title, Tooltip, Legend, BarElement, ArcElement, Categ
 
 ChartJS.register(Title, Tooltip, Legend, BarElement, ArcElement, CategoryScale, LinearScale);
 
+const router = useRouter();
+const authStore = useAuthStore();
 const items = ref([]);
 const salesStats = ref([]);
 const lowStock = ref([]);
 const latestIn = ref([]);
 const latestOut = ref([]);
 const pendingOrders = ref(0);
+const activeDeliveries = ref(0);
+const totalUsers = ref(0);
 const categoryStats = ref([]);
 const topProjects = ref([]);
 
-const fetchDashboardData = async () => {
+// Filters
+const salesTimeRange = ref('7');
+const projectMetric = ref('value'); // 'value' or 'quantity'
+
+const fetchSalesStats = async () => {
   try {
-    const [dashRes, salesRes] = await Promise.all([
-      api.getDashboard(),
-      api.getSalesStats()
+    const res = await api.getSalesStats({ days: salesTimeRange.value });
+    salesStats.value = res.data;
+  } catch (err) {
+    console.error(err);
+  }
+};
+
+const fetchDashboardData = async () => {
+  // Redirect delivery personnel to their own dashboard if they land here
+  if (authStore.user?.role === 'delivery') {
+    router.replace('/deliveries');
+    return;
+  }
+
+  try {
+    const [dashRes] = await Promise.all([
+      api.getDashboard()
     ]);
+    
+    // Initial fetch of sales stats
+    await fetchSalesStats();
     
     const data = dashRes.data;
     items.value = data.items || [];
@@ -258,13 +375,26 @@ const fetchDashboardData = async () => {
     latestIn.value = data.latestIn || [];
     latestOut.value = data.latestOut || [];
     pendingOrders.value = data.pendingOrders || 0;
+    activeDeliveries.value = data.activeDeliveries || 0;
+    totalUsers.value = data.totalUsers || 0;
     categoryStats.value = data.categoryStats || [];
     topProjects.value = data.topProjects || [];
     
-    salesStats.value = salesRes.data;
   } catch (err) {
     console.error(err);
   }
+};
+
+watch(salesTimeRange, () => {
+  fetchSalesStats();
+});
+
+const formatCompactNumber = (number) => {
+  return new Intl.NumberFormat('en-US', {
+    notation: "compact",
+    compactDisplay: "short",
+    maximumFractionDigits: 1
+  }).format(number);
 };
 
 const totalItems = computed(() => items.value.length);

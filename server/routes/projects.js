@@ -30,6 +30,7 @@ router.post('/', auth, roles('admin'), async (req, res) => {
     const project = new Project({
         name: req.body.name,
         location: req.body.location,
+        coordinates: req.body.coordinates, // { lat, lng }
         manager: req.body.manager,
         status: req.body.status
     });

@@ -1,8 +1,12 @@
 {
   "version": 2,
-  "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api/index.js" },
-    { "source": "/(.*)", "destination": "/index.html" }
+  "builds": [
+    {
+      "src": "fryb-studio/package.json",
+      "use": "@vercel/next"
+    }
   ],
-  "outputDirectory": "client/dist"
+  "routes": [
+    { "src": "/(.*)", "dest": "/fryb-studio/$1" }
+  ]
 }

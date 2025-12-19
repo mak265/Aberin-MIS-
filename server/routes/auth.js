@@ -5,7 +5,7 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const ActivityLog = require('../models/ActivityLog');
 const auth = require('../middleware/auth');
-// const nodemailer = require('nodemailer'); // Uncomment if real email is needed
+const sendEmail = require('../utils/email');
 
 // Register
 router.post('/register', async (req, res) => {
@@ -28,26 +28,49 @@ router.post('/register', async (req, res) => {
             email,
             password: hashedPassword,
             otp,
-            otpExpires
+            otpExpires,
+            isVerified: false // Explicitly unverified
         });
 
         await user.save();
         await ActivityLog.create({ user: user._id, action: 'register', details: user.email });
 
-        // Send OTP (Simulated)
-        console.log(`OTP for ${email}: ${otp}`); 
-        // In production, use nodemailer to send email here.
+        // Send OTP
+        await sendEmail(email, 'Verify your Account', `Your verification OTP is: ${otp}`);
 
-        res.status(201).json({ message: 'Registration successful. OTP sent to console (simulated).' });
+        res.status(201).json({ message: 'Registration successful. Please check email for OTP.' });
     } catch (err) {
         res.status(500).json({ message: err.message });
     }
 });
 
-// Verify OTP
+// Resend OTP
+router.post('/resend-otp', async (req, res) => {
+    try {
+        const { email } = req.body;
+        const user = await User.findOne({ email });
+
+        if (!user) return res.status(400).json({ message: 'User not found' });
+        if (user.isVerified) return res.status(400).json({ message: 'User already verified' });
+
+        // Generate new OTP
+        const otp = Math.floor(100000 + Math.random() * 900000).toString();
+        user.otp = otp;
+        user.otpExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
+        await user.save();
+
+        await sendEmail(email, 'Verify your Account (Resend)', `Your new verification OTP is: ${otp}`);
+
+        res.json({ message: 'OTP Resent successfully' });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
+// Verify OTP and Set Password (Optional)
 router.post('/verify-otp', async (req, res) => {
     try {
-        const { email, otp } = req.body;
+        const { email, otp, newPassword } = req.body;
         const user = await User.findOne({ email });
 
         if (!user) return res.status(400).json({ message: 'User not found' });
@@ -60,6 +83,13 @@ router.post('/verify-otp', async (req, res) => {
         user.isVerified = true;
         user.otp = undefined;
         user.otpExpires = undefined;
+
+        // If newPassword is provided (for admin-created users or first-time setup)
+        if (newPassword) {
+            const salt = await bcrypt.genSalt(10);
+            user.password = await bcrypt.hash(newPassword, salt);
+        }
+
         await user.save();
 
         res.json({ message: 'Account verified successfully' });
@@ -81,8 +111,9 @@ router.post('/forgot-password', async (req, res) => {
         user.otpExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
         await user.save();
 
-        console.log(`Reset OTP for ${email}: ${otp}`);
-        res.json({ message: 'Password reset OTP sent (simulated)' });
+        await sendEmail(email, 'Password Reset OTP', `Your password reset OTP is: ${otp}`);
+        
+        res.json({ message: 'OTP sent to your email' });
     } catch (err) {
         res.status(500).json({ message: err.message });
     }

@@ -18,21 +18,44 @@
         <!-- Item Selection -->
         <div class="w-full lg:w-2/3">
           <div class="card h-full flex flex-col">
-            <div class="relative mb-6">
-              <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-              </span>
-              <input 
-                v-model="searchQuery" 
-                type="text" 
-                placeholder="Search items by name or SKU..." 
-                class="input-field pl-10"
-              />
+            <!-- Search & Filter -->
+            <div class="flex flex-col md:flex-row gap-4 mb-6">
+              <div class="relative flex-grow">
+                <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                </span>
+                <input 
+                  v-model="searchQuery" 
+                  type="text" 
+                  placeholder="Search items by name or SKU..." 
+                  class="input-field pl-10"
+                />
+              </div>
+            </div>
+
+            <!-- Categories -->
+            <div class="flex gap-2 overflow-x-auto pb-2 mb-4 custom-scrollbar">
+               <button 
+                 @click="selectedCategory = 'all'"
+                 class="px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-colors"
+                 :class="selectedCategory === 'all' ? 'bg-blue-600 text-white shadow-md' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'"
+               >
+                 All Items
+               </button>
+               <button 
+                 v-for="cat in categories" 
+                 :key="cat._id"
+                 @click="selectedCategory = cat._id"
+                 class="px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-colors"
+                 :class="selectedCategory === cat._id ? 'bg-blue-600 text-white shadow-md' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'"
+               >
+                 {{ cat.name }}
+               </button>
             </div>
             
-            <div class="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4 overflow-y-auto pr-2 custom-scrollbar" style="max-height: calc(100vh - 300px);">
+            <div class="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4 overflow-y-auto pr-2 custom-scrollbar" style="max-height: calc(100vh - 350px);">
               <div 
                 v-for="item in filteredItems" 
                 :key="item._id" 
@@ -246,6 +269,72 @@
         </div>
       </div>
     </div>
+
+    <!-- Receipt Modal -->
+    <div v-if="showReceipt" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+       <div class="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden animate-fade-in">
+          <div class="p-6 bg-gray-50 border-b border-gray-100 flex justify-between items-center">
+             <h3 class="font-bold text-lg text-gray-800">Sale Complete</h3>
+             <button @click="closeReceipt" class="text-gray-400 hover:text-gray-600">
+               <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+               </svg>
+             </button>
+          </div>
+          
+          <div class="p-6" id="receipt-content">
+             <div class="text-center mb-6">
+                <div class="text-2xl font-bold text-gray-800">IMS Receipt</div>
+                <div class="text-sm text-gray-500">{{ new Date().toLocaleString() }}</div>
+             </div>
+             
+             <div class="space-y-2 mb-4 border-b border-dashed border-gray-300 pb-4">
+                <div v-for="(item, idx) in lastSale.items" :key="idx" class="flex justify-between text-sm">
+                   <div class="flex gap-2">
+                      <span class="font-bold">{{ item.qty }}x</span>
+                      <span>{{ item.name }}</span>
+                   </div>
+                   <span>₱{{ (item.price * item.qty).toFixed(2) }}</span>
+                </div>
+             </div>
+             
+             <div class="space-y-2 text-sm">
+                <div class="flex justify-between">
+                   <span class="text-gray-600">Subtotal</span>
+                   <span class="font-medium">₱{{ lastSale.subTotal.toFixed(2) }}</span>
+                </div>
+                <div class="flex justify-between text-red-500" v-if="lastSale.discount > 0">
+                   <span>Discount</span>
+                   <span>-₱{{ lastSale.discount.toFixed(2) }}</span>
+                </div>
+                <div class="flex justify-between text-lg font-bold border-t border-gray-200 pt-2 mt-2">
+                   <span>Total</span>
+                   <span>₱{{ lastSale.total.toFixed(2) }}</span>
+                </div>
+                <div class="flex justify-between text-gray-600 mt-2">
+                   <span>Paid ({{ lastSale.method }})</span>
+                   <span>₱{{ lastSale.paid.toFixed(2) }}</span>
+                </div>
+                <div class="flex justify-between text-green-600 font-bold" v-if="lastSale.change > 0">
+                   <span>Change</span>
+                   <span>₱{{ lastSale.change.toFixed(2) }}</span>
+                </div>
+             </div>
+          </div>
+          
+          <div class="p-6 bg-gray-50 border-t border-gray-100 flex gap-3">
+             <button @click="printReceipt" class="flex-1 btn-primary bg-gray-800 hover:bg-gray-900 flex justify-center items-center gap-2">
+               <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+               </svg>
+               Print
+             </button>
+             <button @click="closeReceipt" class="flex-1 px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-700 font-bold hover:bg-gray-50 transition-colors">
+               Close
+             </button>
+          </div>
+       </div>
+    </div>
   </div>
 </template>
 
@@ -255,25 +344,37 @@ import api from '../services/api';
 import Navbar from '../components/Navbar.vue';
 
 const items = ref([]);
+const categories = ref([]);
 const cart = ref([]);
 const searchQuery = ref('');
+const selectedCategory = ref('all');
 const processing = ref(false);
 const txDiscount = ref({ type: 'none', value: 0 });
 const payment = ref({ method: 'cash', amount: 0 });
 
+// Receipt Modal State
+const showReceipt = ref(false);
+const lastSale = ref({ items: [], subTotal: 0, discount: 0, total: 0, paid: 0, change: 0, method: 'cash' });
+
 const fetchItems = async () => {
   try {
-    const response = await api.getItems();
-    items.value = response.data;
+    const [itemsRes, catsRes] = await Promise.all([
+       api.getItems(),
+       api.getCategories()
+    ]);
+    items.value = itemsRes.data;
+    categories.value = catsRes.data;
   } catch (err) {
     console.error(err);
   }
 };
 
 const filteredItems = computed(() => {
-  return items.value.filter(item => 
-    item.name.toLowerCase().includes(searchQuery.value.toLowerCase())
-  );
+  return items.value.filter(item => {
+    const matchesSearch = item.name.toLowerCase().includes(searchQuery.value.toLowerCase());
+    const matchesCategory = selectedCategory.value === 'all' || (item.category && item.category._id === selectedCategory.value) || item.category === selectedCategory.value;
+    return matchesSearch && matchesCategory;
+  });
 });
 
 const addToCart = (item) => {
@@ -363,7 +464,20 @@ const processSale = async () => {
     };
     
     await api.createSale(saleData);
-    alert('Sale completed successfully!');
+    
+    // Prepare Receipt Data BEFORE clearing cart
+    lastSale.value = {
+      items: JSON.parse(JSON.stringify(cart.value)),
+      subTotal: subTotal.value,
+      discount: txDiscountAmount.value,
+      total: totalDue.value,
+      paid: payment.value.amount,
+      change: change.value,
+      method: payment.value.method
+    };
+    
+    showReceipt.value = true; // Show Modal
+    
     cart.value = [];
     txDiscount.value = { type: 'none', value: 0 };
     payment.value = { method: 'cash', amount: 0 };
@@ -373,6 +487,38 @@ const processSale = async () => {
   } finally {
     processing.value = false;
   }
+};
+
+const closeReceipt = () => {
+  showReceipt.value = false;
+};
+
+const saveReceipt = async () => {
+  const element = document.getElementById('receipt-content');
+  try {
+    const canvas = await html2canvas(element, { backgroundColor: '#ffffff' });
+    const link = document.createElement('a');
+    link.download = `Receipt-${new Date().getTime()}.png`;
+    link.href = canvas.toDataURL();
+    link.click();
+  } catch (err) {
+    console.error('Failed to save receipt', err);
+    alert('Failed to save receipt image.');
+  }
+};
+
+const printReceipt = () => {
+  const content = document.getElementById('receipt-content').innerHTML;
+  const win = window.open('', '', 'height=600,width=400');
+  win.document.write('<html><head><title>Receipt</title>');
+  win.document.write('<link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">'); 
+  win.document.write('</head><body class="p-4">');
+  win.document.write(content);
+  win.document.write('</body></html>');
+  win.document.close();
+  setTimeout(() => {
+    win.print();
+  }, 500);
 };
 
 onMounted(() => {

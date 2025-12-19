@@ -85,7 +85,21 @@
 
                 <div v-if="order.status === 'confirmed'" class="flex flex-col gap-2">
                    <button v-if="order.type === 'pickup'" @click="updateStatus(order._id, 'ready_for_pickup')" class="btn-primary w-full bg-purple-600 hover:bg-purple-700 text-sm">Ready for Pickup</button>
-                   <button v-else @click="updateStatus(order._id, 'out_for_delivery')" class="btn-primary w-full bg-purple-600 hover:bg-purple-700 text-sm">Out for Delivery</button>
+                   <div v-else class="flex flex-col gap-2">
+                       <select v-model="order.selectedDeliveryGuy" class="input-field text-sm p-2">
+                           <option value="" disabled selected>Select Delivery Personnel</option>
+                           <option v-for="user in deliveryUsers" :key="user._id" :value="user._id">
+                               {{ user.email }}
+                           </option>
+                       </select>
+                       <button 
+                           @click="assignDelivery(order)" 
+                           :disabled="!order.selectedDeliveryGuy"
+                           class="btn-primary w-full bg-purple-600 hover:bg-purple-700 text-sm disabled:opacity-50"
+                        >
+                           Assign & Out for Delivery
+                       </button>
+                   </div>
                 </div>
 
                 <div v-if="order.status === 'ready_for_pickup' || order.status === 'out_for_delivery'" class="flex flex-col gap-2">
@@ -109,15 +123,38 @@ import api from '../services/api';
 import Navbar from '../components/Navbar.vue';
 
 const orders = ref([]);
+const deliveryUsers = ref([]);
 const filter = ref('active'); // all, pending, active
 
 const fetchOrders = async () => {
   try {
-    const response = await api.getOrders();
-    orders.value = response.data;
+    const [ordersRes, usersRes] = await Promise.all([
+        api.getOrders(),
+        api.getUsers() // We need to fetch users to find delivery guys
+    ]);
+    
+    orders.value = ordersRes.data;
+    // Filter users to only show delivery personnel
+    deliveryUsers.value = usersRes.data.filter(u => u.role === 'delivery');
   } catch (err) {
     console.error(err);
   }
+};
+
+const assignDelivery = async (order) => {
+    if (!order.selectedDeliveryGuy) return;
+    try {
+        // Update status to 'out_for_delivery' AND assign the user
+        await api.updateOrderStatus(order._id, 'out_for_delivery', order.selectedDeliveryGuy);
+        
+        // Optimistic update
+        order.status = 'out_for_delivery';
+        order.assignedTo = deliveryUsers.value.find(u => u._id === order.selectedDeliveryGuy);
+        alert('Delivery assigned successfully!');
+    } catch (err) {
+        console.error(err);
+        alert('Failed to assign delivery');
+    }
 };
 
 const updateStatus = async (id, status) => {
@@ -137,6 +174,8 @@ const updateStatus = async (id, status) => {
     alert('Failed to update status: ' + (err.response?.data?.message || err.message));
   }
 };
+
+const searchQuery = ref('');
 
 const filteredOrders = computed(() => {
   let result = orders.value;

@@ -4,6 +4,7 @@ const auth = require('../middleware/auth');
 const Item = require('../models/Item');
 const Transaction = require('../models/Transaction');
 const Order = require('../models/Order');
+const User = require('../models/User'); // Import User model
 
 router.get('/', auth, async (req, res) => {
   try {
@@ -18,6 +19,15 @@ router.get('/', auth, async (req, res) => {
 
     // Pending Orders
     const pendingOrders = await Order.countDocuments({ status: 'pending' });
+    
+    // Active Deliveries (out_for_delivery)
+    const activeDeliveries = await Order.countDocuments({ status: 'out_for_delivery' });
+
+    // Total Users
+    const totalUsers = await User.countDocuments();
+    const userStats = await User.aggregate([
+      { $group: { _id: '$role', count: { $sum: 1 } } }
+    ]);
 
     // Category Distribution
     const categoryStats = await Item.aggregate([
@@ -45,17 +55,28 @@ router.get('/', auth, async (req, res) => {
       }
     ]);
 
-    // Top Projects (Most Stock Out by Quantity)
+    // Top Projects (Suki) - Aggregated by Value and Quantity
     const topProjects = await Transaction.aggregate([
       { $match: { type: 'out', project: { $exists: true } } },
+      // Lookup Item to get price (using current price as approximation)
+      {
+        $lookup: {
+          from: 'items',
+          localField: 'item',
+          foreignField: '_id',
+          as: 'itemData'
+        }
+      },
+      { $unwind: '$itemData' },
       {
         $group: {
           _id: '$project',
           totalQuantity: { $sum: '$quantity' },
+          totalValue: { $sum: { $multiply: ['$quantity', '$itemData.price'] } },
           txn_count: { $sum: 1 }
         }
       },
-      { $sort: { totalQuantity: -1 } },
+      { $sort: { totalValue: -1 } }, // Default sort by value (Suki)
       { $limit: 5 },
       {
         $lookup: {
@@ -69,6 +90,7 @@ router.get('/', auth, async (req, res) => {
         $project: {
           name: { $arrayElemAt: ['$projectInfo.name', 0] },
           totalQuantity: 1,
+          totalValue: 1,
           txn_count: 1
         }
       }
@@ -81,6 +103,9 @@ router.get('/', auth, async (req, res) => {
       latestIn,
       latestOut,
       pendingOrders,
+      activeDeliveries,
+      totalUsers,
+      userStats,
       categoryStats,
       topProjects
     });

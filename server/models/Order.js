@@ -28,7 +28,15 @@ const OrderSchema = new mongoose.Schema({
     deliveryAddress: { 
         type: String 
     },
-    status: { 
+    location: {
+        lat: Number,
+        lng: Number
+    },
+    assignedTo: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
+    },
+    status: {  
         type: String, 
         enum: ['pending', 'confirmed', 'ready_for_pickup', 'out_for_delivery', 'completed', 'cancelled'], 
         default: 'pending' 

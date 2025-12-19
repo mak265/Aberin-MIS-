@@ -9,7 +9,7 @@
           <p class="text-gray-500 mt-1">Manage construction sites and allocations</p>
         </div>
         <button 
-          @click="showModal = true" 
+          @click="openModal" 
           class="btn-primary flex items-center shadow-lg shadow-blue-500/30"
         >
           <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -65,6 +65,22 @@
           </div>
 
           <div class="flex justify-end space-x-2 pt-4 border-t border-gray-100 relative z-10" @click.stop>
+            <!-- Status Toggle (Simple) -->
+            <button 
+              v-if="project.status === 'active'"
+              @click="updateStatus(project, 'on-hold')" 
+              class="text-yellow-600 hover:text-yellow-900 bg-yellow-50 hover:bg-yellow-100 px-3 py-1.5 rounded-lg transition-colors text-sm font-medium"
+            >
+              Hold
+            </button>
+            <button 
+              v-if="project.status === 'on-hold'"
+              @click="updateStatus(project, 'active')" 
+              class="text-green-600 hover:text-green-900 bg-green-50 hover:bg-green-100 px-3 py-1.5 rounded-lg transition-colors text-sm font-medium"
+            >
+              Resume
+            </button>
+            
             <button 
               @click="deleteProject(project._id)" 
               class="text-red-600 hover:text-red-900 bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-lg transition-colors text-sm font-medium flex items-center"
@@ -94,8 +110,8 @@
 
     <!-- Modal -->
     <div v-if="showModal" class="fixed inset-0 bg-gray-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 transition-opacity">
-      <div class="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden transform transition-all scale-100">
-        <div class="flex justify-between items-center p-6 border-b border-gray-100 bg-gray-50/50">
+      <div class="bg-white rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden transform transition-all scale-100 flex flex-col max-h-[90vh]">
+        <div class="flex justify-between items-center p-6 border-b border-gray-100 bg-gray-50/50 shrink-0">
           <h2 class="text-xl font-bold text-gray-800">Add New Project</h2>
           <button @click="showModal = false" class="text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-full hover:bg-gray-100">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -104,15 +120,23 @@
           </button>
         </div>
         
-        <form @submit.prevent="createProject" class="p-6 space-y-4">
+        <form @submit.prevent="createProject" class="p-6 space-y-4 overflow-y-auto">
           <div>
             <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Project Name</label>
             <input v-model="form.name" required class="input-field" placeholder="e.g. Sky Tower Phase 1" />
           </div>
           <div>
-            <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Location</label>
+            <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Location Name</label>
             <input v-model="form.location" required class="input-field" placeholder="e.g. Makati City" />
           </div>
+          
+          <!-- Map -->
+          <div>
+             <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Pin Location on Map</label>
+             <div id="projectMap" class="h-64 w-full rounded-lg border border-gray-300"></div>
+             <p class="text-xs text-gray-400 mt-1">Click on the map to set the project site coordinates.</p>
+          </div>
+
           <div>
             <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Manager</label>
             <input v-model="form.manager" class="input-field" placeholder="e.g. Engr. Juan Dela Cruz" />
@@ -128,18 +152,54 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, nextTick } from 'vue';
 import api from '../services/api';
 import Navbar from '../components/Navbar.vue';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 
 const projects = ref([]);
 const showModal = ref(false);
 const form = ref({
   name: '',
   location: '',
+  coordinates: { lat: 14.5995, lng: 120.9842 }, // Default Manila
   manager: '',
   status: 'active'
 });
+let map = null;
+let marker = null;
+
+const initMap = () => {
+  if (map) return;
+  
+  map = L.map('projectMap').setView([14.5995, 120.9842], 12);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap contributors'
+  }).addTo(map);
+
+  map.on('click', (e) => {
+    const { lat, lng } = e.latlng;
+    form.value.coordinates = { lat, lng };
+    
+    if (marker) {
+      marker.setLatLng([lat, lng]);
+    } else {
+      marker = L.marker([lat, lng]).addTo(map);
+    }
+  });
+};
+
+const openModal = async () => {
+    showModal.value = true;
+    await nextTick();
+    // Reset map if needed or just resize
+    if (!map) {
+        initMap();
+    } else {
+        map.invalidateSize();
+    }
+};
 
 const fetchProjects = async () => {
   try {

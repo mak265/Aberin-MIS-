@@ -11,7 +11,10 @@ app.use(cors());
 app.use(express.json());
 
 // Database Connection
-mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/inventory-db')
+const mongoURI = process.env.MONGO_URI || 'mongodb://localhost:27017/inventory-db';
+console.log(`Connecting to MongoDB at: ${mongoURI.includes('localhost') ? 'Localhost' : 'Atlas Cloud'}`);
+
+mongoose.connect(mongoURI)
 .then(() => console.log('MongoDB connected'))
 .catch(err => console.log(err));
 
@@ -26,6 +29,7 @@ const dashboardRouter = require('./routes/dashboard');
 const reportsRouter = require('./routes/reports');
 const usersRouter = require('./routes/users');
 const ordersRouter = require('./routes/orders');
+const activityLogsRouter = require('./routes/activityLogs');
 
 app.use('/api/auth', authRouter);
 app.use('/api/items', itemsRouter);
@@ -37,6 +41,7 @@ app.use('/api/dashboard', dashboardRouter);
 app.use('/api/reports', reportsRouter);
 app.use('/api/users', usersRouter);
 app.use('/api/orders', ordersRouter);
+app.use('/api/activity-logs', activityLogsRouter);
 
 if (process.env.NODE_ENV !== 'production') {
     app.listen(PORT, () => {

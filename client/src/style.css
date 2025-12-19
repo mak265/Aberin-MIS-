@@ -34,7 +34,7 @@
   }
 
   .page-container {
-    @apply min-h-screen bg-gray-50/50 pb-12 pt-24;
+    @apply min-h-screen bg-gray-50/50 pb-12 pt-20 md:pt-8 md:pl-72 transition-all duration-300;
   }
 }
 

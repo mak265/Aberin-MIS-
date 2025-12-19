@@ -16,26 +16,38 @@ const Order = require('./models/Order');
 const ActivityLog = require('./models/ActivityLog');
 
 // Connect to DB
-mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/inventory-db')
-  .then(() => console.log('MongoDB Connected for Seeding'))
-  .catch(err => {
-    console.error(err);
+const connectDB = async () => {
+  try {
+    await mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/inventory-db', {
+        serverSelectionTimeoutMS: 30000, // Increase timeout
+        socketTimeoutMS: 45000,
+    });
+    console.log('MongoDB Connected for Seeding');
+    await seed();
+  } catch (err) {
+    console.error('MongoDB Connection Error:', err);
     process.exit(1);
-  });
+  }
+};
 
 const seed = async () => {
   try {
     console.log('Clearing existing data...');
-    // Optional: Comment out if you want to append instead of clear
-    await Promise.all([
-      User.deleteMany({}),
-      Category.deleteMany({}),
-      Project.deleteMany({}),
-      Item.deleteMany({}),
-      Transaction.deleteMany({}),
-      Order.deleteMany({}),
-      ActivityLog.deleteMany({})
-    ]);
+    
+    // Drop collections (faster than deleteMany) if they exist
+    const collections = await mongoose.connection.db.collections();
+    for (let collection of collections) {
+        try {
+            await collection.drop();
+            console.log(`Dropped collection: ${collection.collectionName}`);
+        } catch (error) {
+            if (error.code === 26) {
+                console.log(`Collection ${collection.collectionName} not found (skipped)`);
+            } else {
+                 console.log(`Error dropping ${collection.collectionName}:`, error.message);
+            }
+        }
+    }
 
     console.log('Generating Users...');
     const roles = ['admin', 'warehouse_staff', 'site_engineer', 'client'];
@@ -217,4 +229,4 @@ const seed = async () => {
   }
 };
 
-seed();
+connectDB();

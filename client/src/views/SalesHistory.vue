@@ -122,8 +122,13 @@ const filters = ref({
 const fetchSales = async () => {
   try {
     const res = await api.getSales({ ...filters.value });
-    sales.value = res.data;
+    if (res.data && Array.isArray(res.data)) {
+      sales.value = res.data;
+    } else {
+      sales.value = [];
+    }
   } catch (err) {
+    console.error(err);
     alert(err.response?.data?.message || 'Failed to fetch sales');
   }
 };
@@ -144,23 +149,51 @@ const exportCSV = async () => {
 };
 
 const exportPDF = () => {
-  const doc = new jsPDF();
-  doc.text('Sales History', 14, 15);
+  const doc = new jsPDF('l', 'mm', 'a4'); // Landscape for more width
+  doc.setFontSize(16);
+  doc.text('Sales History Report', 14, 15);
   doc.setFontSize(10);
   doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 22);
-  const columns = ['Txn ID', 'Date', 'Items', 'Total', 'Paid', 'Change', 'Method', 'Cashier'];
-  const rows = sales.value.map(s => [
-    s.transactionId,
-    new Date(s.date).toLocaleString(),
-    s.items.map(i => `${i.name} x${i.quantity} @${i.price} ${i.discountType ? '('+i.discountType+':'+i.discountValue+')' : ''} = ${i.lineTotal}`).join('; '),
-    s.totalAmount.toFixed(2),
-    s.amountPaid.toFixed(2),
-    (s.change || 0).toFixed(2),
-    s.paymentMethod,
-    s.user?.email || ''
-  ]);
-  autoTable(doc, { head: [columns], body: rows, startY: 30 });
-  doc.save('sales_history.pdf');
+  
+  if (filters.value.startDate || filters.value.endDate) {
+    doc.text(`Period: ${filters.value.startDate || 'Start'} to ${filters.value.endDate || 'Now'}`, 14, 28);
+  }
+
+  const columns = [
+    { header: 'Txn ID', dataKey: 'id' },
+    { header: 'Date', dataKey: 'date' },
+    { header: 'Items Summary', dataKey: 'items' },
+    { header: 'Total', dataKey: 'total' },
+    { header: 'Paid', dataKey: 'paid' },
+    { header: 'Method', dataKey: 'method' },
+    { header: 'Cashier', dataKey: 'cashier' }
+  ];
+
+  const rows = sales.value.map(s => ({
+    id: s.transactionId,
+    date: new Date(s.date).toLocaleDateString(),
+    items: s.items.map(i => `${i.name} (${i.quantity})`).join(', '),
+    total: `P${s.totalAmount.toFixed(2)}`,
+    paid: `P${s.amountPaid.toFixed(2)}`,
+    method: s.paymentMethod.toUpperCase(),
+    cashier: s.user?.email || 'N/A'
+  }));
+
+  autoTable(doc, {
+    columns: columns,
+    body: rows,
+    startY: 35,
+    theme: 'grid',
+    styles: { fontSize: 8, cellPadding: 3 },
+    headStyles: { fillColor: [41, 128, 185], textColor: 255, fontStyle: 'bold' },
+    columnStyles: {
+      items: { cellWidth: 80 }, // Wider column for items
+      total: { halign: 'right', fontStyle: 'bold' },
+      paid: { halign: 'right' }
+    }
+  });
+
+  doc.save(`Sales_History_${new Date().toISOString().slice(0,10)}.pdf`);
 };
 
 onMounted(() => {

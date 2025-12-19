@@ -14,6 +14,15 @@ export const useAuthStore = defineStore('auth', {
       this.user = response.data.user; // Assuming API returns user info
       localStorage.setItem('token', this.token);
     },
+    async fetchUser() {
+      if (!this.token) return;
+      try {
+        const response = await api.getMe();
+        this.user = response.data;
+      } catch (err) {
+        this.logout();
+      }
+    },
     async register(email, password) {
       await api.register({ email, password });
       this.emailForVerification = email;

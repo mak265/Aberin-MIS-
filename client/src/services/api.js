@@ -35,8 +35,14 @@ export default {
   verifyOtp(data) {
     return apiClient.post('/auth/verify-otp', data);
   },
+  resendOtp(data) {
+    return apiClient.post('/auth/resend-otp', data);
+  },
   login(credentials) {
     return apiClient.post('/auth/login', credentials);
+  },
+  getMe() {
+    return apiClient.get('/auth/me');
   },
   forgotPassword(data) {
     return apiClient.post('/auth/forgot-password', data);
@@ -72,8 +78,8 @@ export default {
   getSalesCsv(params) {
     return apiClient.get('/sales', { params: { ...params, format: 'csv' }, responseType: 'blob' });
   },
-  getSalesStats() {
-    return apiClient.get('/sales/stats');
+  getSalesStats(params) {
+    return apiClient.get('/sales/stats', { params });
   },
   getDashboard() {
     return apiClient.get('/dashboard');
@@ -163,7 +169,12 @@ export default {
   createOrder(orderData) {
     return apiClient.post('/orders', orderData);
   },
-  updateOrderStatus(id, status) {
-    return apiClient.put(`/orders/${id}/status`, { status });
+  updateOrderStatus(id, status, assignedTo = null) {
+    return apiClient.put(`/orders/${id}/status`, { status, assignedTo });
+  },
+
+  // Activity Logs
+  getActivityLogs(params) {
+    return apiClient.get('/activity-logs', { params });
   }
 };

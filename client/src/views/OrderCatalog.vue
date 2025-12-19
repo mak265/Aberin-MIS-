@@ -118,13 +118,13 @@
                <label class="block text-xs font-bold text-gray-500 uppercase mb-2">Order Type</label>
                <div class="grid grid-cols-2 gap-4">
                  <label class="cursor-pointer">
-                   <input type="radio" v-model="orderType" value="pickup" class="sr-only peer" />
+                   <input type="radio" v-model="orderType" value="pickup" @change="handleOrderTypeChange" class="sr-only peer" />
                    <div class="text-center p-3 rounded-lg border-2 border-gray-200 peer-checked:border-blue-500 peer-checked:bg-blue-50 transition-all">
                      <span class="block text-sm font-bold">Pickup</span>
                    </div>
                  </label>
                  <label class="cursor-pointer">
-                   <input type="radio" v-model="orderType" value="delivery" class="sr-only peer" />
+                   <input type="radio" v-model="orderType" value="delivery" @change="handleOrderTypeChange" class="sr-only peer" />
                    <div class="text-center p-3 rounded-lg border-2 border-gray-200 peer-checked:border-blue-500 peer-checked:bg-blue-50 transition-all">
                      <span class="block text-sm font-bold">Delivery</span>
                    </div>
@@ -132,9 +132,18 @@
                </div>
             </div>
 
-            <div v-if="orderType === 'delivery'" class="animate-fade-in">
-              <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Delivery Address</label>
-              <textarea v-model="deliveryAddress" required class="input-field min-h-[80px]" placeholder="Enter complete address"></textarea>
+            <div v-if="orderType === 'delivery'" class="animate-fade-in space-y-4">
+              <div>
+                <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Delivery Address</label>
+                <textarea v-model="deliveryAddress" required class="input-field min-h-[80px]" placeholder="Enter complete address"></textarea>
+              </div>
+              
+              <div>
+                <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Pin Location</label>
+                <div id="map" class="h-48 w-full rounded-lg border border-gray-300 z-0"></div>
+                <p class="text-xs text-gray-500 mt-1" v-if="!location">Click on the map to pin your exact location.</p>
+                <p class="text-xs text-green-600 font-bold mt-1" v-else>Location pinned!</p>
+              </div>
             </div>
 
             <div>
@@ -157,10 +166,23 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, nextTick } from 'vue';
 import { useRouter } from 'vue-router';
 import api from '../services/api';
 import Navbar from '../components/Navbar.vue';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
+
+// Fix Leaflet icon issue
+import icon from 'leaflet/dist/images/marker-icon.png';
+import iconShadow from 'leaflet/dist/images/marker-shadow.png';
+let DefaultIcon = L.icon({
+    iconUrl: icon,
+    shadowUrl: iconShadow,
+    iconSize: [25, 41],
+    iconAnchor: [12, 41]
+});
+L.Marker.prototype.options.icon = DefaultIcon;
 
 const router = useRouter();
 const items = ref([]);
@@ -170,6 +192,46 @@ const showCart = ref(false);
 const orderType = ref('pickup');
 const deliveryAddress = ref('');
 const notes = ref('');
+const location = ref(null);
+let map = null;
+let marker = null;
+
+const initMap = () => {
+  if (map) return;
+  // Default to Manila or User's location if possible
+  const defaultLat = 14.5995;
+  const defaultLng = 120.9842;
+  
+  map = L.map('map').setView([defaultLat, defaultLng], 13);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap contributors'
+  }).addTo(map);
+
+  map.on('click', (e) => {
+    if (marker) {
+      marker.setLatLng(e.latlng);
+    } else {
+      marker = L.marker(e.latlng).addTo(map);
+    }
+    location.value = { lat: e.latlng.lat, lng: e.latlng.lng };
+  });
+  
+  // Try to get user location
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(pos => {
+      const { latitude, longitude } = pos.coords;
+      map.setView([latitude, longitude], 15);
+    });
+  }
+};
+
+const handleOrderTypeChange = async () => {
+  if (orderType.value === 'delivery') {
+    await nextTick();
+    // Delay slightly to ensure DOM is ready
+    setTimeout(initMap, 100);
+  }
+};
 
 const fetchItems = async () => {
   try {
@@ -220,6 +282,7 @@ const placeOrder = async () => {
       items: cart.value.map(c => ({ item: c.item, quantity: c.quantity })),
       type: orderType.value,
       deliveryAddress: orderType.value === 'delivery' ? deliveryAddress.value : undefined,
+      location: orderType.value === 'delivery' ? location.value : undefined,
       notes: notes.value
     };
 
@@ -227,6 +290,7 @@ const placeOrder = async () => {
     alert('Order placed successfully!');
     cart.value = [];
     showCart.value = false;
+    location.value = null;
     router.push('/my-orders');
   } catch (err) {
     alert(err.response?.data?.message || 'Failed to place order');

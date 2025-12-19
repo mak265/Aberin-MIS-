@@ -19,88 +19,102 @@ import OrderManagement from '../views/OrderManagement.vue';
 import Reports from '../views/Reports.vue';
 import Users from '../views/Users.vue';
 import SalesHistory from '../views/SalesHistory.vue';
+import AuditTrail from '../views/AuditTrail.vue';
+import DeliveryDashboard from '../views/DeliveryDashboard.vue';
 
 import TransactionRecords from '../views/TransactionRecords.vue';
 
 const routes = [
-  { path: '/', redirect: '/dashboard' },
+  { path: '/', redirect: '/login' },
   { path: '/login', component: Login },
   { path: '/register', component: Register },
   { path: '/verify-otp', component: VerifyOtp },
   { path: '/forgot-password', component: ForgotPassword },
   { path: '/reset-password', component: ResetPassword },
   { 
-    path: '/dashboard',
-    component: () => {
-        const authStore = useAuthStore();
-        return authStore.user?.role === 'client' ? ClientDashboard : Dashboard;
-    },
-    meta: { requiresAuth: true }
+    path: '/dashboard', 
+    component: Dashboard, 
+    meta: { requiresAuth: true, roles: ['admin', 'warehouse_staff', 'site_engineer'] } 
+  },
+  { 
+    path: '/client-dashboard', 
+    component: ClientDashboard, 
+    meta: { requiresAuth: true, roles: ['client'] } 
   },
   { 
     path: '/inventory', 
-    component: Inventory,
-    meta: { requiresAuth: true }
+    component: Inventory, 
+    meta: { requiresAuth: true, roles: ['admin', 'warehouse_staff', 'site_engineer'] } 
   },
-  {
-    path: '/pos',
-    component: POS,
-    meta: { requiresAuth: true, roles: ['warehouse_staff', 'admin'] }
+  { 
+    path: '/pos', 
+    component: POS, 
+    meta: { requiresAuth: true, roles: ['admin'] } 
   },
-  {
-    path: '/categories',
-    component: Categories,
-    meta: { requiresAuth: true, roles: ['admin', 'warehouse_staff'] }
+  { 
+    path: '/categories', 
+    component: Categories, 
+    meta: { requiresAuth: true, roles: ['admin'] } 
   },
-  {
-    path: '/projects',
-    component: Projects,
-    meta: { requiresAuth: true, roles: ['admin'] }
+  { 
+    path: '/projects', 
+    component: Projects, 
+    meta: { requiresAuth: true, roles: ['admin'] } 
   },
   {
     path: '/projects/:id',
     component: ProjectDetails,
     meta: { requiresAuth: true, roles: ['admin'] }
   },
-  {
-    path: '/stock',
-    component: StockOps,
-    meta: { requiresAuth: true, roles: ['warehouse_staff', 'admin'] }
+  { 
+    path: '/transactions', 
+    component: TransactionRecords, 
+    meta: { requiresAuth: true, roles: ['admin', 'site_engineer'] } 
+  },
+  { 
+    path: '/reports', 
+    component: Reports, 
+    meta: { requiresAuth: true, roles: ['admin', 'site_engineer'] } 
+  },
+  { 
+    path: '/users', 
+    component: Users, 
+    meta: { requiresAuth: true, roles: ['admin'] } 
+  },
+  { 
+    path: '/stock', 
+    component: StockOps, 
+    meta: { requiresAuth: true, roles: ['admin'] } 
+  },
+  { 
+    path: '/sales-history', 
+    component: SalesHistory, 
+    meta: { requiresAuth: true, roles: ['admin'] } 
+  },
+  { 
+    path: '/order-catalog', 
+    component: OrderCatalog, 
+    meta: { requiresAuth: true, roles: ['client'] } 
+  },
+  { 
+    path: '/my-orders', 
+    component: MyOrders, 
+    meta: { requiresAuth: true, roles: ['client'] } 
+  },
+  { 
+    path: '/orders-manage', 
+    component: OrderManagement, 
+    meta: { requiresAuth: true, roles: ['admin'] } 
   },
   {
-    path: '/order-catalog',
-    component: OrderCatalog,
-    meta: { requiresAuth: true, roles: ['client'] }
-  },
-  {
-    path: '/my-orders',
-    component: MyOrders,
-    meta: { requiresAuth: true, roles: ['client'] }
-  },
-  {
-    path: '/orders-manage',
-    component: OrderManagement,
-    meta: { requiresAuth: true, roles: ['warehouse_staff', 'admin'] }
-  },
-  {
-    path: '/transactions',
-    component: TransactionRecords,
-    meta: { requiresAuth: true, roles: ['admin', 'warehouse_staff', 'site_engineer'] }
-  },
-  {
-    path: '/reports',
-    component: Reports,
-    meta: { requiresAuth: true, roles: ['admin', 'site_engineer'] }
-  },
-  {
-    path: '/users',
-    component: Users,
+    path: '/audit-trail',
+    component: AuditTrail,
     meta: { requiresAuth: true, roles: ['admin'] }
   },
   {
-    path: '/sales-history',
-    component: SalesHistory,
-    meta: { requiresAuth: true, roles: ['warehouse_staff', 'admin'] }
+    path: '/deliveries',
+    component: DeliveryDashboard,
+    meta: { requiresAuth: true, roles: ['delivery', 'admin'] }
   }
 ];
 

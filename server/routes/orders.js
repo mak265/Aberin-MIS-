@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const Order = require('../models/Order');
 const Item = require('../models/Item');
+const Transaction = require('../models/Transaction');
 const auth = require('../middleware/auth');
 const roles = require('../middleware/roles');
 const logActivity = require('../utils/logger');
@@ -14,8 +15,23 @@ router.get('/', auth, async (req, res) => {
 
         console.log(`GET /orders - User: ${req.user.email} (${req.user.role}), View: ${view}`);
 
-        // If 'view=mine' is requested, or if user is NOT admin/staff, only show own orders
-        if (view === 'mine' || (req.user.role !== 'admin' && req.user.role !== 'warehouse_staff')) {
+        // 1. Admin/Warehouse: Can see ALL orders
+        if (req.user.role === 'admin' || req.user.role === 'warehouse_staff') {
+             // If they specifically asked for 'mine', show their own (unlikely but possible)
+             if (view === 'mine') {
+                 query.user = req.user.id;
+             }
+             // Otherwise, query stays empty {} -> fetch all
+        }
+        // 2. Delivery Personnel: See orders assigned to them OR unassigned delivery orders (optional, depending on policy)
+        // For now, let's say they see orders assigned to them
+        else if (req.user.role === 'delivery') {
+            console.log(`Delivery User ${req.user.id} fetching assigned orders`);
+            // STRICT QUERY: Only show orders where assignedTo matches their ID
+            query.assignedTo = req.user.id;
+        }
+        // 3. Client: See only their own orders
+        else {
             query.user = req.user.id;
         }
 
@@ -24,6 +40,7 @@ router.get('/', auth, async (req, res) => {
         const orders = await Order.find(query)
             .populate('user', 'email')
             .populate('items.item')
+            .populate('assignedTo', 'email') // Populate delivery guy info
             .sort({ createdAt: -1 });
         
         console.log(`Found ${orders.length} orders`);
@@ -79,6 +96,17 @@ router.post('/', auth, async (req, res) => {
             item.quantity -= i.quantity;
             await item.save();
 
+            // Create Transaction Record (Stock Out)
+            const transaction = new Transaction({
+                item: item._id,
+                type: 'out',
+                quantity: i.quantity,
+                user: req.user.id,
+                reason: `Order ${type || 'standard'}`,
+                project: req.body.projectId // Optional: if linked to a project
+            });
+            await transaction.save();
+
             orderItems.push({
                 item: item._id,
                 quantity: i.quantity,
@@ -92,9 +120,10 @@ router.post('/', auth, async (req, res) => {
             items: orderItems,
             type,
             deliveryAddress: type === 'delivery' ? deliveryAddress : undefined,
+            location: type === 'delivery' ? req.body.location : undefined,
             totalAmount,
             notes,
-            status: 'pending'
+            status: 'confirmed' // Auto-confirm internal orders or keep pending? Let's keep pending for workflow, or confirmed if it's "Stock Out"
         });
 
         const newOrder = await order.save();
@@ -107,32 +136,45 @@ router.post('/', auth, async (req, res) => {
     }
 });
 
-// UPDATE Order Status (Admin/Staff only)
-router.put('/:id/status', auth, roles('admin', 'warehouse_staff'), async (req, res) => {
+// UPDATE Order Status or Assign Delivery
+router.put('/:id/status', auth, roles('admin', 'warehouse_staff', 'delivery'), async (req, res) => {
     try {
-        const { status } = req.body;
+        const { status, assignedTo } = req.body;
         const order = await Order.findById(req.params.id);
         
         if (!order) return res.status(404).json({ message: 'Order not found' });
 
-        const oldStatus = order.status;
-        
-        // Handle Cancellation (Restock items)
-        if (status === 'cancelled' && oldStatus !== 'cancelled') {
-            for (let i of order.items) {
-                const item = await Item.findById(i.item);
-                if (item) {
-                    item.quantity += i.quantity;
-                    await item.save();
-                }
+        // If assigning a delivery person (Admin/Staff only)
+        if (assignedTo) {
+            console.log(`Assigning order ${order._id} to ${assignedTo}`);
+            if (req.user.role !== 'admin' && req.user.role !== 'warehouse_staff') {
+                return res.status(403).json({ message: 'Only admins can assign deliveries' });
             }
+            order.assignedTo = assignedTo;
+            await logActivity(req.user.id, 'order_assign', `Assigned order ${order._id} to user ${assignedTo}`);
         }
 
-        order.status = status;
+        // If updating status
+        if (status) {
+            const oldStatus = order.status;
+            
+            // Handle Cancellation (Restock items)
+            if (status === 'cancelled' && oldStatus !== 'cancelled') {
+                for (let i of order.items) {
+                    const item = await Item.findById(i.item);
+                    if (item) {
+                        item.quantity += i.quantity;
+                        await item.save();
+                    }
+                }
+            }
+
+            order.status = status;
+            await logActivity(req.user.id, 'order_update', `Updated order ${order._id} status to ${status}`);
+        }
+
         order.updatedAt = Date.now();
         await order.save();
-
-        await logActivity(req.user.id, 'order_update', `Updated order ${order._id} status to ${status}`);
         
         res.json(order);
     } catch (err) {

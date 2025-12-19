@@ -5,7 +5,7 @@
     <div class="absolute top-0 right-0 w-96 h-96 bg-purple-400/20 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-blob animation-delay-2000"></div>
     <div class="absolute -bottom-32 left-20 w-96 h-96 bg-pink-400/20 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-blob animation-delay-4000"></div>
 
-    <div class="bg-white/80 backdrop-blur-xl p-8 rounded-3xl shadow-2xl w-full max-w-md border border-white/50 relative z-10">
+    <div class="bg-white/80 backdrop-blur-xl p-6 md:p-8 rounded-3xl shadow-2xl w-full max-w-md border border-white/50 relative z-10 mx-4">
       <div class="text-center mb-8">
         <div class="mx-auto h-16 w-16 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-2xl shadow-lg mb-4 flex items-center justify-center">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -48,16 +48,22 @@
 
       <div class="mt-8 pt-6 border-t border-gray-100 text-center">
         <p class="text-gray-600">
-          Don't have an account? 
-          <router-link to="/register" class="text-blue-600 font-semibold hover:text-blue-700 hover:underline">Create Account</router-link>
+           Forgot your password? <router-link to="/forgot-password" class="text-blue-600 font-semibold hover:text-blue-700 hover:underline">Reset here</router-link>
         </p>
       </div>
 
-      <div v-if="error" class="mt-4 p-4 bg-red-50 border border-red-100 rounded-xl flex items-center gap-3 text-red-600 text-sm">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
-          <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
-        </svg>
-        {{ error }}
+      <div v-if="error" class="mt-4 p-4 bg-red-50 border border-red-100 rounded-xl text-sm">
+        <div class="flex items-center gap-3 text-red-600">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+          </svg>
+          {{ error }}
+        </div>
+        
+        <!-- Add Link to Verify Page if error is about verification -->
+        <div v-if="error.includes('verify')" class="mt-2 pl-8">
+            <router-link to="/verify-otp" class="text-blue-600 font-bold hover:underline">Go to Verification Page</router-link>
+        </div>
       </div>
     </div>
   </div>
@@ -77,7 +83,16 @@ const router = useRouter();
 const handleLogin = async () => {
   try {
     await authStore.login(email.value, password.value);
-    router.push('/dashboard');
+    
+    // Redirect based on role
+    const role = authStore.user?.role;
+    if (role === 'client') {
+      router.push('/client-dashboard');
+    } else if (role === 'delivery') {
+      router.push('/deliveries');
+    } else {
+      router.push('/dashboard');
+    }
   } catch (err) {
     error.value = err.response?.data?.message || 'Login failed';
   }
